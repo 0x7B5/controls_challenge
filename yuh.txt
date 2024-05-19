@@ -1,0 +1,2 @@
+ONNX Runtime is using GPU
+ONNX Runtime is using GPU

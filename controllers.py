@@ -54,53 +54,7 @@ class PIDController(BaseController):
     self.prev_error = error
     return output 
 
-import numpy as np
-import cvxpy as cp
-import onnxruntime as ort
-
-class MPCController:
-    def __init__(self, model_path="./models/tinyphysics.onnx", horizon=10, dt=0.1):
-        # Load the ONNX model
-        self.model = ort.InferenceSession(model_path)
-        self.horizon = horizon
-        self.dt = dt
-        self.initial_state = cp.Parameter(3)  # Assuming state vector has 3 elements
-        self.target = cp.Parameter(horizon)  # target lateral accelerations
-        self.setup_mpc_problem()
-
-    def setup_mpc_problem(self):
-        # Define the optimization variables
-        self.u = cp.Variable(self.horizon)  # control actions (steer commands)
-        self.x = cp.Variable((self.horizon + 1, 3))  # states (lateral acceleration, velocity, etc.)
-
-        # Define the cost function components
-        self.target = cp.Parameter(self.horizon)  # target lateral accelerations
-        cost = 0
-        for t in range(self.horizon):
-            cost += cp.sum_squares(self.x[t+1, 0] - self.target[t])  # Minimize error
-            cost += 0.1 * cp.sum_squares(self.u[t])  # Control effort penalty
-
-        # Define constraints
-        constraints = [self.x[0, :] == self.initial_state]  # initial state constraint
-        for t in range(self.horizon):
-            constraints += [
-                self.x[t+1] == self.x[t] + self.dt * self.model.predict(self.x[t], self.u[t]),  # Dynamics
-                cp.abs(self.u[t]) <= 2  # Steering angle limits
-            ]
-
-        # Create optimization problem
-        self.problem = cp.Problem(cp.Minimize(cost), constraints)
-
-    def update(self, initial_state, target_trajectory):
-        self.initial_state.value = initial_state
-        self.target.value = target_trajectory
-        result = self.problem.solve()
-        if result is None:
-            raise Exception("MPC problem is infeasible")
-        return self.u.value[0]  # Return the first control action
-
-
-
+      
 '''
 Max value of update is 2.0 because max revolutions for most cars is around 2. This is in radians? I think 
 '''
@@ -122,5 +76,5 @@ CONTROLLERS = {
   'open': OpenController,
   'simple': SimpleController,
   'pid': PIDController,
-  'mpc': MPCController,
+  # 'mpc': MPCController,
 }
