@@ -79,6 +79,12 @@ if __name__ == "__main__":
   costs = []
   sample_rollouts = []
   files = sorted(data_path.iterdir())[:args.num_segs]
+  
+  cumm_cost = 0  
+  avg_total_cost = 0.0
+  
+  x = 0 
+  
   for d, data_file in enumerate(tqdm(files, total=len(files))):
     test_controller = CONTROLLERS[args.test_controller]()
     baseline_controller = CONTROLLERS[args.baseline_controller]()
@@ -99,5 +105,14 @@ if __name__ == "__main__":
 
     costs.append({'seg': data_file.stem, 'controller': 'test', **test_cost})
     costs.append({'seg': data_file.stem, 'controller': 'baseline', **baseline_cost})
+    
+    x += 1 
+    cumm_cost += test_cost["total_cost"]
+    
+    avg_total_cost = cumm_cost / float(x)
+    
+    print(f"Rolling avg cost: {avg_total_cost}")
+    
+    
 
   create_report(args.test_controller, args.baseline_controller, sample_rollouts, costs)

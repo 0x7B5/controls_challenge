@@ -9,22 +9,25 @@ from tinyphysics import TinyPhysicsSimulator, TinyPhysicsModel
 
 
 '''
-This provides two algorithms for tuning a PID controller in this context: genetic algorithm and particle swarm optimization. I have found that the genetic algorithm generally works better because PSO gets stuck on local minima often. 
-
-Overall though, this is a pretty naive approach since it trains on a small subset of data. 
+This provides two algorithms for tuning a PID controller in this context: genetic algorithm and particle swarm optimization. 
 '''
 
-'''
-Run PSO with 0.00001 values for ki and kd 
-'''
-
-BOUNDS = {'kp': (0.0001, 2), 'ki': (0.0001, 1), 'kd': (0.0001,1)}
+BOUNDS = {'kp': (0, 2), 'ki': (-1, 1), 'kd': (-1,1)}
 class Particle:
     def __init__(self):
         self.position = np.array([random.uniform(BOUNDS['kp'][0], BOUNDS['kp'][1]), random.uniform(BOUNDS['ki'][0], BOUNDS['ki'][1]), random.uniform(BOUNDS['kd'][0], BOUNDS['kd'][1])])
         self.velocity = np.random.uniform(-1, 1, 3)
         self.p_i = self.position.copy()
         self.best_value = float('inf')
+        
+        '''
+    Higher interia value to avoid local minimia
+    Higher c_1 to increase priority of personal best 
+    '''
+    def update_velocity(self, gbest_pos, w=0.75, c_1=1.8, c_2=1.5):
+        cognitive = c_1 * random.random() * (self.p_i - self.position)
+        social = c_2 * random.random() * (gbest_pos - self.position)
+        self.velocity = (w * self.velocity) + cognitive + social
 
     def update_velocity(self, gbest_pos, w=0.5, c_1=1.5, c_2=1.5):
         cognitive = c_1 * random.random() * (self.p_i - self.position)
@@ -45,6 +48,7 @@ def evaluate_pid(kp, ki, kd, model, data_files, debug=False):
     total_cost = 0
     for data_file in data_files:
         total_cost += evaluate_single_simulation(kp, ki, kd, model, data_file, debug)
+        
     average_cost = total_cost / len(data_files)
     return average_cost
 
@@ -59,12 +63,11 @@ def run_pso(num_segs, iter_size, num_particles=20, iterations=40, debug=False):
     
     for iteration in range(iterations):
         print(f"Iteration: {iteration + 1}/{iterations}")
-        
-        # selected_files = random.sample(all_files, iter_size)
+    
         selected_files = all_files
 
         fitness = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
             tasks = [(p.position[0], p.position[1], p.position[2], model, selected_files, debug) for p in swarm]
             fitness = list(tqdm(executor.map(lambda params: evaluate_pid(*params), tasks), total=len(tasks), desc="Evaluating PID"))
         
@@ -87,7 +90,7 @@ def run_pso(num_segs, iter_size, num_particles=20, iterations=40, debug=False):
     return global_best_position
 
 
-def run_ga(num_segs, iter_size, pop_size=20, iterations=40, mut_rate=0.1, cross_rate=0.5, debug=False):
+def run_ga(num_segs, iter_size, pop_size=25, iterations=40, mut_rate=0.1, cross_rate=0.5, debug=False):
     data_path = Path("./data/")
     all_files = sorted(data_path.glob("*.csv"))[:num_segs]
     model = TinyPhysicsModel("./models/tinyphysics.onnx", debug=debug) 
@@ -97,10 +100,15 @@ def run_ga(num_segs, iter_size, pop_size=20, iterations=40, mut_rate=0.1, cross_
     population[:, 1] = population[:, 1] * (BOUNDS['ki'][1] - BOUNDS['ki'][0]) + BOUNDS['ki'][0]
     population[:, 2] = population[:, 2] * (BOUNDS['kd'][1] - BOUNDS['kd'][0]) + BOUNDS['kd'][0]
     
+    
+    print(population)
+    
+    subsets = [all_files[i:i + iter_size] for i in range(0, len(all_files), iter_size)]
+    
+    
     for generation in range(iterations): 
         print(f"Generation {generation + 1}/{iterations}")
-        
-        selected_files = random.sample(all_files, iter_size)
+        selected_files = subsets[generation % len(subsets)]
         
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             tasks = [(ind[0], ind[1], ind[2], model, selected_files, debug) for ind in population]
