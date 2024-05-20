@@ -14,12 +14,11 @@ This provides two algorithms for tuning a PID controller in this context: geneti
 Overall though, this is a pretty naive approach since it trains on a small subset of data. 
 '''
 
-
 '''
 Run PSO with 0.00001 values for ki and kd 
 '''
 
-BOUNDS = {'kp': (0.05, 2), 'ki': (0.0001, 1), 'kd': (0.0001,1)}
+BOUNDS = {'kp': (0.0001, 2), 'ki': (0.0001, 1), 'kd': (0.0001,1)}
 class Particle:
     def __init__(self):
         self.position = np.array([random.uniform(BOUNDS['kp'][0], BOUNDS['kp'][1]), random.uniform(BOUNDS['ki'][0], BOUNDS['ki'][1]), random.uniform(BOUNDS['kd'][0], BOUNDS['kd'][1])])
@@ -61,7 +60,8 @@ def run_pso(num_segs, iter_size, num_particles=20, iterations=40, debug=False):
     for iteration in range(iterations):
         print(f"Iteration: {iteration + 1}/{iterations}")
         
-        selected_files = random.sample(all_files, iter_size)
+        # selected_files = random.sample(all_files, iter_size)
+        selected_files = all_files
 
         fitness = []
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
