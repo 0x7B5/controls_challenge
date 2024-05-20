@@ -9,6 +9,8 @@ I implemented a PID controller and used a Particle Swarm Optimization to tune th
 
 An overall more robut solution would most likely use an MPC controller to create a proactive controller instead of a reactive controller like PID.
 
+This controller achieves a total_cost of 34.174 (lataccel_cost of 1.636 and jerk_cost of 25.993).
+
 
 ## Geting Started
 We'll be using a synthetic dataset based on the [comma-steering-control](https://github.com/commaai/comma-steering-control) dataset for this challenge. These are actual routes with actual car and road states.
