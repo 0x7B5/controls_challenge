@@ -4,6 +4,12 @@
 Machine learning models can drive cars, paint beautiful pictures and write passable rap. But they famously suck at doing low level controls. Your goal is to write a good controller. This repo contains a model that simulates the lateral movement of a car, given steering commands. The goal is to drive this "car" well for a given desired trajectory.
 
 
+## My Solution 
+I implemented a PID controller and used a Particle Swarm Optimization to tune the parameters where kp=0.045, ki=0.09501335, kd=-0.03649474. I also implemented a genetic algorithm for tuning, however a [Differential Evolution](https://rshare.library.torontomu.ca/articles/journal_contribution/Comparative_Study_of_DE_PSO_and_GA_for_Position_Domain_PID_Controller_Tuning/14638164/1) would probably be best in this case. 
+
+An overall more robut solution would most likely use an MPC controller to create a proactive controller instead of a reactive controller like PID.
+
+
 ## Geting Started
 We'll be using a synthetic dataset based on the [comma-steering-control](https://github.com/commaai/comma-steering-control) dataset for this challenge. These are actual routes with actual car and road states.
 
